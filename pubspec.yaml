@@ -1,0 +1,45 @@
+﻿name: npq_music
+description: NPQ Music Flutter client
+publish_to: none
+version: 1.0.0+1
+environment:
+  sdk: ^3.10.0
+dependencies:
+  flutter:
+    sdk: flutter
+  tdesign_flutter: ^0.2.7
+  lucide_icons_flutter: ^3.1.21
+  dio: ^5.9.0
+  dio_cookie_manager: ^3.3.0
+  cookie_jar: ^4.0.8
+  just_audio: ^0.10.6
+  audio_service: ^0.18.18
+  path_provider: ^2.1.5
+  file_picker: ^10.3.10
+  shared_preferences: ^2.5.3
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/logo.png
+
+# Tạo icon app: đặt ảnh vuông 1024x1024 vào assets/icon.png rồi chạy
+#   dart run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  image_path: "assets/icon.png"
+  web:
+    generate: true
+    image_path: "assets/icon.png"
+
+dependency_overrides:
+  tdesign_flutter:
+    path: vendor/tdesign_flutter
+

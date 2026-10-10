@@ -1,0 +1,64 @@
+workflows:
+  # ---------------------------------------------------------------------------
+  # ANDROID: ra file APK cài được trực tiếp
+  # ---------------------------------------------------------------------------
+  android-apk:
+    name: Android APK
+    instance_type: linux_x2
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      java: 17
+    scripts:
+      - name: Lấy thư viện
+        script: flutter pub get
+      - name: Tạo icon app (bỏ qua nếu chưa có assets/icon.png)
+        script: |
+          if [ -f assets/icon.png ]; then
+            dart run flutter_launcher_icons
+          else
+            echo "Không có assets/icon.png, bỏ qua bước tạo icon."
+          fi
+      - name: Build APK
+        script: flutter build apk --release
+    artifacts:
+      - build/app/outputs/flutter-apk/*.apk
+
+  # ---------------------------------------------------------------------------
+  # IOS: ra file IPA KHÔNG KÝ (không cần tài khoản Apple Developer).
+  # Cần ký lại bằng Sideloadly / AltStore (Apple ID thường) mới cài được.
+  # ---------------------------------------------------------------------------
+  ios-unsigned:
+    name: iOS IPA không ký
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Lấy thư viện
+        script: flutter pub get
+      - name: Tạo icon app (bỏ qua nếu chưa có assets/icon.png)
+        script: |
+          if [ -f assets/icon.png ]; then
+            dart run flutter_launcher_icons
+          else
+            echo "Không có assets/icon.png, bỏ qua bước tạo icon."
+          fi
+      - name: Tạo lại thư mục ios nếu thiếu
+        script: |
+          if [ ! -f ios/Runner.xcodeproj/project.pbxproj ]; then
+            echo "Thiếu thư mục ios, tạo lại..."
+            flutter create --platforms=ios .
+          fi
+      - name: Build iOS không ký
+        script: flutter build ios --release --no-codesign
+      - name: Đóng gói IPA
+        script: |
+          mkdir -p Payload
+          cp -R build/ios/iphoneos/Runner.app Payload/
+          zip -r npq_music.ipa Payload
+    artifacts:
+      - npq_music.ipa
+      - build/ios/iphoneos/Runner.app

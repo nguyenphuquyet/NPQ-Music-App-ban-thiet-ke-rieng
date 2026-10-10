@@ -673,8 +673,8 @@ extension _PlayerUI on _MusicHomeState {
             ),
           ),
         );
-        // Bàn xoay: đế bo góc + đĩa xoay (ảnh bìa làm nhãn) + cần gạt.
-        Widget cover(double size) => _Turntable(
+        // Đĩa xoay (ảnh bìa làm nhãn giữa đĩa).
+        Widget cover(double size) => _SpinningDisc(
           size: size,
           coverUrl: url,
           playing: player.audio.playing,
@@ -1013,77 +1013,43 @@ extension _PlayerUI on _MusicHomeState {
   );
 }
 
-// ---------------- Bàn xoay (turntable) cho màn hình đang phát ----------------
-// Bản Flutter của khối "đĩa than" ở NowPlayingOverlay.tsx: đế bo góc, đĩa xoay
-// có ảnh bìa làm nhãn, cần gạt hạ xuống khi phát / nhấc ra khi tạm dừng.
+// ---------------- Đĩa xoay cho màn hình đang phát ----------------
+// Bản Flutter của khối đĩa than ở NowPlayingOverlay.tsx: đĩa xoay khi phát,
+// đứng yên khi tạm dừng, ảnh bìa làm nhãn giữa đĩa.
 
-const double _deg = 0.017453292519943295; // 1 độ -> radian
-
-class _TurntableColors {
-  final Color baseA, baseB, ring, discA, discB, discEdge, sheen;
-  final Color metalEdge, metalMid, head, headStroke;
-  final Color pivot, pivotIn, pivotStroke, labelRing;
-  const _TurntableColors({
-    required this.baseA,
-    required this.baseB,
-    required this.ring,
+class _DiscColors {
+  final Color discA, discB, discEdge, sheen, labelRing;
+  const _DiscColors({
     required this.discA,
     required this.discB,
     required this.discEdge,
     required this.sheen,
-    required this.metalEdge,
-    required this.metalMid,
-    required this.head,
-    required this.headStroke,
-    required this.pivot,
-    required this.pivotIn,
-    required this.pivotStroke,
     required this.labelRing,
   });
 
-  static const light = _TurntableColors(
-    baseA: Color(0xFFFFFFFF),
-    baseB: Color(0xFFF3F4F6),
-    ring: Color(0xFFF1F2F4),
+  static const light = _DiscColors(
     discA: Color(0xFFFFFFFF),
     discB: Color(0xFFF1F1F2),
     discEdge: Color(0x0A000000),
     sheen: Color(0x0D000000),
-    metalEdge: Color(0xFF8D9096),
-    metalMid: Color(0xFFE9EAEC),
-    head: Color(0xFFFAFAFA),
-    headStroke: Color(0xFFD4D6DA),
-    pivot: Color(0xFFF4F5F6),
-    pivotIn: Color(0xFFFFFFFF),
-    pivotStroke: Color(0xFFD9DBDF),
     labelRing: Color(0xE6CBD5E1),
   );
 
-  static const dark = _TurntableColors(
-    baseA: Color(0xFF2B2E34),
-    baseB: Color(0xFF1B1D21),
-    ring: Color(0xFF15171A),
+  static const dark = _DiscColors(
     discA: Color(0xFF121214),
     discB: Color(0xFF222226),
     discEdge: Color(0x14FFFFFF),
     sheen: Color(0x17FFFFFF),
-    metalEdge: Color(0xFF5B5F67),
-    metalMid: Color(0xFFC8CBD1),
-    head: Color(0xFF3A3D44),
-    headStroke: Color(0xFF50535B),
-    pivot: Color(0xFF34373D),
-    pivotIn: Color(0xFF43464D),
-    pivotStroke: Color(0xFF55585F),
     labelRing: Color(0x40FFFFFF),
   );
 }
 
-class _Turntable extends StatefulWidget {
+class _SpinningDisc extends StatefulWidget {
   final double size;
   final String coverUrl;
   final bool playing, dark;
   final Color accent;
-  const _Turntable({
+  const _SpinningDisc({
     required this.size,
     required this.coverUrl,
     required this.playing,
@@ -1091,10 +1057,10 @@ class _Turntable extends StatefulWidget {
     required this.accent,
   });
   @override
-  State<_Turntable> createState() => _TurntableState();
+  State<_SpinningDisc> createState() => _SpinningDiscState();
 }
 
-class _TurntableState extends State<_Turntable>
+class _SpinningDiscState extends State<_SpinningDisc>
     with SingleTickerProviderStateMixin {
   // 1 vòng / 8 giây. stop() giữ nguyên góc hiện tại, repeat() xoay tiếp từ đó
   // nên tạm dừng / phát lại đĩa không bị giật về góc 0.
@@ -1110,7 +1076,7 @@ class _TurntableState extends State<_Turntable>
   }
 
   @override
-  void didUpdateWidget(_Turntable old) {
+  void didUpdateWidget(_SpinningDisc old) {
     super.didUpdateWidget(old);
     _sync();
   }
@@ -1133,10 +1099,9 @@ class _TurntableState extends State<_Turntable>
 
   @override
   Widget build(BuildContext context) {
-    final c = widget.dark ? _TurntableColors.dark : _TurntableColors.light;
+    final c = widget.dark ? _DiscColors.dark : _DiscColors.light;
     final s = widget.size;
-    final discSize = s * .75;
-    final icon = Icon(LucideIcons.music2, size: s * .14, color: widget.accent);
+    final icon = Icon(LucideIcons.music2, size: s * .16, color: widget.accent);
 
     final label = Container(
       clipBehavior: Clip.antiAlias,
@@ -1157,86 +1122,27 @@ class _TurntableState extends State<_Turntable>
     return SizedBox(
       width: s,
       height: s,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          // Đế
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(s * .1),
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [c.baseA, c.baseB],
+      child: RepaintBoundary(
+        child: RotationTransition(
+          turns: _spin,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: .4),
+                  blurRadius: 40,
+                  spreadRadius: -8,
+                  offset: const Offset(0, 18),
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: .35),
-                    blurRadius: 50,
-                    spreadRadius: -12,
-                    offset: const Offset(0, 25),
-                  ),
-                ],
-              ),
+              ],
+            ),
+            child: CustomPaint(
+              painter: _DiscPainter(c),
+              child: Padding(padding: EdgeInsets.all(s * .19), child: label),
             ),
           ),
-          // Vòng đệm quanh đĩa
-          Positioned.fill(
-            child: Padding(
-              padding: EdgeInsets.all(s * .1),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: c.ring,
-                  border: Border.all(color: c.discEdge),
-                ),
-              ),
-            ),
-          ),
-          // Đĩa xoay
-          Positioned.fill(
-            child: Padding(
-              padding: EdgeInsets.all(s * .125),
-              child: RepaintBoundary(
-                child: RotationTransition(
-                  turns: _spin,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: .3),
-                          blurRadius: 14,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: CustomPaint(
-                      painter: _DiscPainter(c),
-                      child: Padding(
-                        padding: EdgeInsets.all(discSize * .19),
-                        child: label,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          // Cần gạt: xoay quanh trục ở (90%, 10%) của đế.
-          Positioned.fill(
-            child: IgnorePointer(
-              child: AnimatedRotation(
-                turns: widget.playing ? 0 : -26 / 360,
-                alignment: const Alignment(.8, -.8),
-                duration: const Duration(milliseconds: 700),
-                curve: Curves.easeInOut,
-                child: CustomPaint(painter: _ArmPainter(c)),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -1244,7 +1150,7 @@ class _TurntableState extends State<_Turntable>
 
 /// Mặt đĩa: rãnh đồng tâm + vệt phản chiếu (để thấy rõ đĩa đang quay).
 class _DiscPainter extends CustomPainter {
-  final _TurntableColors c;
+  final _DiscColors c;
   const _DiscPainter(this.c);
 
   @override
@@ -1284,111 +1190,4 @@ class _DiscPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_DiscPainter old) => old.c != c;
-}
-
-/// Cần gạt vẽ trong hệ toạ độ 0..100 (khớp bản SVG ở bản web).
-class _ArmPainter extends CustomPainter {
-  final _TurntableColors c;
-  const _ArmPainter(this.c);
-
-  static const _pivot = Offset(90, 10);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.save();
-    canvas.scale(size.width / 100, size.height / 100);
-
-    final arm = Path()
-      ..moveTo(90, 10)
-      ..lineTo(80.6, 60)
-      ..quadraticBezierTo(78.6, 68, 72.4, 74);
-    final headRect = RRect.fromLTRBR(66.6, 72.6, 73.6, 77.6, const Radius.circular(2.2));
-
-    void withHeadTransform(void Function() draw) {
-      canvas.save();
-      canvas.translate(70, 75);
-      canvas.rotate(35 * _deg);
-      canvas.translate(-70, -75);
-      draw();
-      canvas.restore();
-    }
-
-    // Bóng đổ
-    final shadow = Paint()
-      ..color = const Color(0x47000000)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, .9);
-    canvas.save();
-    canvas.translate(.6, 1.2);
-    canvas.drawPath(
-      arm,
-      shadow
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.3
-        ..strokeCap = StrokeCap.round,
-    );
-    shadow.style = PaintingStyle.fill;
-    canvas.drawCircle(_pivot, 6.2, shadow);
-    withHeadTransform(() => canvas.drawRRect(headRect, shadow));
-    canvas.restore();
-
-    // Đối trọng
-    LinearGradient metal(Rect r) => LinearGradient(colors: [c.metalEdge, c.metalMid, c.metalEdge]);
-    final cwRect = const Rect.fromLTWH(88.4, -2, 3.6, 8);
-    canvas.save();
-    canvas.translate(90, 10);
-    canvas.rotate(8 * _deg);
-    canvas.translate(-90, -10);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(cwRect, const Radius.circular(.6)),
-      Paint()..shader = metal(cwRect).createShader(cwRect),
-    );
-    canvas.restore();
-
-    // Thân cần
-    final armBounds = const Rect.fromLTRB(72, 10, 90.7, 74);
-    canvas.drawPath(
-      arm,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.3
-        ..strokeCap = StrokeCap.round
-        ..shader = metal(armBounds).createShader(armBounds),
-    );
-
-    // Đầu kim
-    withHeadTransform(() {
-      canvas.drawRRect(headRect, Paint()..color = c.head);
-      canvas.drawRRect(
-        headRect,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = .3
-          ..color = c.headStroke,
-      );
-      canvas.drawCircle(const Offset(68.6, 75.1), .9, Paint()..color = c.pivotIn);
-      canvas.drawCircle(
-        const Offset(68.6, 75.1),
-        .9,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = .3
-          ..color = c.headStroke,
-      );
-    });
-
-    // Chân trục
-    final ringLine = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = .3
-      ..color = c.pivotStroke;
-    canvas.drawCircle(_pivot, 6.2, Paint()..color = c.pivot);
-    canvas.drawCircle(_pivot, 6.2, ringLine);
-    canvas.drawCircle(_pivot, 3.8, Paint()..color = c.pivotIn);
-    canvas.drawCircle(_pivot, 3.8, ringLine);
-
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(_ArmPainter old) => old.c != c;
 }
